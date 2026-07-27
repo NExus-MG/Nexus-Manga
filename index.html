@@ -169,11 +169,7 @@ async function fetchPublicManga() {
     }
 }
 
-// Run this when the page loads
-window.onload = () => {
-    fetchPublicManga();
-    checkAuth();
-};
+
         ];
 
         // Reader State
@@ -263,10 +259,11 @@ window.onload = () => {
         }
 
         // Initialization
-        window.onload = () => {
-            loadLibrary();
-            checkAuth();
-        };
+   // Run this when the page loads
+window.onload = () => {
+    fetchPublicManga();
+    checkAuth();
+};
     </script>
 </body>
 </html>
