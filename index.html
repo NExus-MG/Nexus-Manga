@@ -133,44 +133,8 @@
     </div>
 
     <script>
-      const API_BASE = 'https://api.mangadex.org';
-
-// Fetch live manga list automatically from the public database
-async function fetchPublicManga() {
-    try {
-        const response = await fetch(`${API_BASE}/manga?limit=12&includes[]=_cover_art`);
-        const data = await response.json();
-        
-        // Transform public data to fit your website cards
-        mangaDatabase = data.data.map(manga => {
-            const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || "Unknown Title";
-            const description = manga.attributes.description.en || "No description available.";
-            
-            // Find the cover art file name
-            const coverRelationship = manga.relationships.find(rel => rel.type === 'cover_art');
-            let coverUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"; // fallback
-            if (coverRelationship && coverRelationship.attributes) {
-                const fileName = coverRelationship.attributes.fileName;
-                coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
-            }
-
-            return {
-                id: manga.id,
-                title: title,
-                genre: "Manga",
-                cover: coverUrl,
-                description: description
-            };
-        });
-
-        loadLibrary(); // Renders the live manga onto your homepage
-    } catch (error) {
-        console.error("Failed to fetch public manga:", error);
-    }
-}
-
-
-        ];
+        const API_BASE = 'https://api.mangadex.org';
+        let mangaDatabase = [];
 
         // Reader State
         let currentPages = [
@@ -180,8 +144,38 @@ async function fetchPublicManga() {
         ];
         let currentPageIndex = 0;
 
-        // --- Application Logic ---
-        
+        // Fetch live manga list automatically from MangaDex
+        async function fetchPublicManga() {
+            try {
+                const response = await fetch(`${API_BASE}/manga?limit=12&includes[]=_cover_art`);
+                const data = await response.json();
+                
+                mangaDatabase = data.data.map(manga => {
+                    const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || "Unknown Title";
+                    const description = manga.attributes.description.en || "No description available.";
+                    
+                    const coverRelationship = manga.relationships.find(rel => rel.type === 'cover_art');
+                    let coverUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe";
+                    if (coverRelationship && coverRelationship.attributes) {
+                        const fileName = coverRelationship.attributes.fileName;
+                        coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
+                    }
+
+                    return {
+                        id: manga.id,
+                        title: title,
+                        genre: "Manga",
+                        cover: coverUrl,
+                        description: description
+                    };
+                });
+
+                loadLibrary();
+            } catch (error) {
+                console.error("Failed to fetch public manga:", error);
+            }
+        }
+
         // Render Library Grid
         function loadLibrary() {
             const grid = document.getElementById('mangaGrid');
@@ -228,9 +222,8 @@ async function fetchPublicManga() {
             document.getElementById('pageIndicator').innerText = `Page ${currentPageIndex + 1} / ${currentPages.length}`;
         }
 
-        // --- Authentication (Persistent Login) ---
+        // Authentication (Persistent Login)
         function checkAuth() {
-            // Checks local storage to prevent needing to log in every session
             const savedEmail = localStorage.getItem('nexus_user');
             const authSection = document.getElementById('authSection');
             
@@ -259,11 +252,10 @@ async function fetchPublicManga() {
         }
 
         // Initialization
-   // Run this when the page loads
-window.onload = () => {
-    fetchPublicManga();
-    checkAuth();
-};
+        window.onload = () => {
+            fetchPublicManga();
+            checkAuth();
+        };
     </script>
 </body>
 </html>
