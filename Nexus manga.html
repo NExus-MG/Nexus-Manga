@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Manga</title>
+    <style>
+        :root {
+            --bg-color: #0f0f11;
+            --surface-color: #1a1a1f;
+            --primary-color: #7c3aed;
+            --primary-hover: #6d28d9;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+        /* Navigation */
+        nav {
+            background-color: var(--surface-color);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+        .logo { font-size: 1.5rem; font-weight: bold; color: var(--primary-color); cursor: pointer; }
+        .auth-section { display: flex; gap: 10px; align-items: center; }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: var(--primary-hover); }
+        
+        /* Views */
+        .view { display: none; padding: 2rem 5%; }
+        .view.active { display: block; }
+
+        /* Library Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .manga-card {
+            background: var(--surface-color);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .manga-card:hover { transform: translateY(-5px); }
+        .manga-card img { width: 100%; height: 300px; object-fit: cover; }
+        .manga-info { padding: 1rem; }
+        .manga-title { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+        .manga-genre { color: var(--text-muted); font-size: 0.9rem; margin: 0; }
+
+        /* Reader */
+        .reader-header { display: flex; justify-content: space-between; margin-bottom: 1rem; }
+        .reader-content { display: flex; flex-direction: column; align-items: center; }
+        .reader-img { max-width: 100%; height: auto; margin-bottom: 1rem; border-radius: 4px; }
+        .reader-controls { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
+
+        /* Login Modal */
+        #loginModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: var(--surface-color); padding: 2rem; border-radius: 8px; width: 300px;
+        }
+        .modal-content input {
+            width: 100%; padding: 0.8rem; margin: 1rem 0; box-sizing: border-box;
+            background: var(--bg-color); border: 1px solid #444; color: white; border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo" onclick="showView('libraryView')">Nexus Manga</div>
+        <div class="auth-section" id="authSection">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </nav>
+
+    <!-- Library View -->
+    <div id="libraryView" class="view active">
+        <h2>Latest Updates</h2>
+        <div class="grid" id="mangaGrid">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- Reader View -->
+    <div id="readerView" class="view">
+        <div class="reader-header">
+            <button onclick="showView('libraryView')">← Back to Library</button>
+            <h3 id="readerTitle">Chapter Title</h3>
+            <div></div> <!-- Spacer -->
+        </div>
+        <div class="reader-content">
+            <img id="currentMangaPage" class="reader-img" src="" alt="Manga Page">
+            <div class="reader-controls">
+                <button onclick="turnPage(-1)">Previous</button>
+                <span id="pageIndicator">Page 1 / 3</span>
+                <button onclick="turnPage(1)">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal">
+        <div class="modal-content">
+            <h3>Sign In</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">Session saves automatically.</p>
+            <input type="email" id="emailInput" placeholder="Enter your email">
+            <button style="width: 100%;" onclick="handleLogin()">Login</button>
+            <button style="width: 100%; margin-top: 10px; background: transparent; border: 1px solid #444;" onclick="document.getElementById('loginModal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Mock Data ---
+        const mangaDatabase = [
+            { id: 1, title: "Void Walker", genre: "Action / Sci-Fi", cover: "https://images.unsplash.com/photo-1618519764633-5605069fd627?auto=format&fit=crop&w=400&q=80" },
+            { id: 2, title: "Echoes of Time", genre: "Fantasy", cover: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=400&q=80" },
+            { id: 3, title: "Neon Tokyo", genre: "Cyberpunk", cover: "https://images.unsplash.com/photo-1580136579312-94651dfd596d?auto=format&fit=crop&w=400&q=80" },
+            { id: 4, title: "Spirit Blade", genre: "Historical", cover: "https://images.unsplash.com/photo-1541562232579-512a21360020?auto=format&fit=crop&w=400&q=80" }
+        ];
+
+        // Reader State
+        let currentPages = [
+            "https://images.unsplash.com/photo-1618519764633-5605069fd627?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1580136579312-94651dfd596d?auto=format&fit=crop&w=800&q=80"
+        ];
+        let currentPageIndex = 0;
+
+        // --- Application Logic ---
+        
+        // Render Library Grid
+        function loadLibrary() {
+            const grid = document.getElementById('mangaGrid');
+            grid.innerHTML = '';
+            mangaDatabase.forEach(manga => {
+                const card = document.createElement('div');
+                card.className = 'manga-card';
+                card.onclick = () => openReader(manga.title);
+                card.innerHTML = `
+                    <img src="${manga.cover}" alt="${manga.title}">
+                    <div class="manga-info">
+                        <h3 class="manga-title">${manga.title}</h3>
+                        <p class="manga-genre">${manga.genre}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // View Navigation
+        function showView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        // Reader Functions
+        function openReader(title) {
+            document.getElementById('readerTitle').innerText = title + " - Chapter 1";
+            currentPageIndex = 0;
+            updateReaderUI();
+            showView('readerView');
+        }
+
+        function turnPage(direction) {
+            const newIndex = currentPageIndex + direction;
+            if (newIndex >= 0 && newIndex < currentPages.length) {
+                currentPageIndex = newIndex;
+                updateReaderUI();
+            }
+        }
+
+        function updateReaderUI() {
+            document.getElementById('currentMangaPage').src = currentPages[currentPageIndex];
+            document.getElementById('pageIndicator').innerText = `Page ${currentPageIndex + 1} / ${currentPages.length}`;
+        }
+
+        // --- Authentication (Persistent Login) ---
+        function checkAuth() {
+            // Checks local storage to prevent needing to log in every session
+            const savedEmail = localStorage.getItem('nexus_user');
+            const authSection = document.getElementById('authSection');
+            
+            if (savedEmail) {
+                authSection.innerHTML = `
+                    <span style="color: var(--text-muted); margin-right: 10px;">${savedEmail}</span>
+                    <button onclick="handleLogout()">Sign Out</button>
+                `;
+            } else {
+                authSection.innerHTML = `<button onclick="document.getElementById('loginModal').style.display='flex'">Sign In</button>`;
+            }
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('emailInput').value;
+            if (email) {
+                localStorage.setItem('nexus_user', email);
+                document.getElementById('loginModal').style.display = 'none';
+                checkAuth();
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('nexus_user');
+            checkAuth();
+        }
+
+        // Initialization
+        window.onload = () => {
+            loadLibrary();
+            checkAuth();
+        };
+    </script>
+</body>
+</html>
