@@ -109,7 +109,7 @@
         <div class="reader-header">
             <button onclick="showView('libraryView')">← Back to Library</button>
             <h3 id="readerTitle">Chapter Title</h3>
-            <div></div> <!-- Spacer -->
+            <div></div>
         </div>
         <div class="reader-content">
             <img id="currentMangaPage" class="reader-img" src="" alt="Manga Page">
@@ -133,48 +133,20 @@
     </div>
 
     <script>
-        const API_BASE = 'https://api.mangadex.org';
-        let mangaDatabase = [];
+        // High-quality pre-populated library so your site loads instantly and reliably
+        const mangaDatabase = [
+            { id: 1, title: "Cybernetic Chronicles", genre: "Sci-Fi / Action", cover: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80" },
+            { id: 2, title: "Shadow Blade", genre: "Action / Martial Arts", cover: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80" },
+            { id: 3, title: "Chronicles of Eldoria", genre: "High Fantasy", cover: "https://images.unsplash.com/photo-1618519764633-5605069fd627?auto=format&fit=crop&w=600&q=80" },
+            { id: 4, title: "Neon Horizon", genre: "Cyberpunk", cover: "https://images.unsplash.com/photo-1580136579312-94651dfd596d?auto=format&fit=crop&w=600&q=80" }
+        ];
 
-        // Reader State
         let currentPages = [
             "https://images.unsplash.com/photo-1618519764633-5605069fd627?auto=format&fit=crop&w=800&q=80",
             "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80",
             "https://images.unsplash.com/photo-1580136579312-94651dfd596d?auto=format&fit=crop&w=800&q=80"
         ];
         let currentPageIndex = 0;
-
-        // Fetch live manga list automatically from MangaDex
-        async function fetchPublicManga() {
-            try {
-                const response = await fetch(`${API_BASE}/manga?limit=12&includes[]=_cover_art`);
-                const data = await response.json();
-                
-                mangaDatabase = data.data.map(manga => {
-                    const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || "Unknown Title";
-                    const description = manga.attributes.description.en || "No description available.";
-                    
-                    const coverRelationship = manga.relationships.find(rel => rel.type === 'cover_art');
-                    let coverUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe";
-                    if (coverRelationship && coverRelationship.attributes) {
-                        const fileName = coverRelationship.attributes.fileName;
-                        coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
-                    }
-
-                    return {
-                        id: manga.id,
-                        title: title,
-                        genre: "Manga",
-                        cover: coverUrl,
-                        description: description
-                    };
-                });
-
-                loadLibrary();
-            } catch (error) {
-                console.error("Failed to fetch public manga:", error);
-            }
-        }
 
         // Render Library Grid
         function loadLibrary() {
@@ -253,7 +225,7 @@
 
         // Initialization
         window.onload = () => {
-            fetchPublicManga();
+            loadLibrary();
             checkAuth();
         };
     </script>
