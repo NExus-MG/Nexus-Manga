@@ -133,12 +133,47 @@
     </div>
 
     <script>
-        // --- Mock Data ---
-        const mangaDatabase = [
-            { id: 1, title: "Void Walker", genre: "Action / Sci-Fi", cover: "https://images.unsplash.com/photo-1618519764633-5605069fd627?auto=format&fit=crop&w=400&q=80" },
-            { id: 2, title: "Echoes of Time", genre: "Fantasy", cover: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=400&q=80" },
-            { id: 3, title: "Neon Tokyo", genre: "Cyberpunk", cover: "https://images.unsplash.com/photo-1580136579312-94651dfd596d?auto=format&fit=crop&w=400&q=80" },
-            { id: 4, title: "Spirit Blade", genre: "Historical", cover: "https://images.unsplash.com/photo-1541562232579-512a21360020?auto=format&fit=crop&w=400&q=80" }
+      const API_BASE = 'https://api.mangadex.org';
+
+// Fetch live manga list automatically from the public database
+async function fetchPublicManga() {
+    try {
+        const response = await fetch(`${API_BASE}/manga?limit=12&includes[]=_cover_art`);
+        const data = await response.json();
+        
+        // Transform public data to fit your website cards
+        mangaDatabase = data.data.map(manga => {
+            const title = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || "Unknown Title";
+            const description = manga.attributes.description.en || "No description available.";
+            
+            // Find the cover art file name
+            const coverRelationship = manga.relationships.find(rel => rel.type === 'cover_art');
+            let coverUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"; // fallback
+            if (coverRelationship && coverRelationship.attributes) {
+                const fileName = coverRelationship.attributes.fileName;
+                coverUrl = `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.256.jpg`;
+            }
+
+            return {
+                id: manga.id,
+                title: title,
+                genre: "Manga",
+                cover: coverUrl,
+                description: description
+            };
+        });
+
+        loadLibrary(); // Renders the live manga onto your homepage
+    } catch (error) {
+        console.error("Failed to fetch public manga:", error);
+    }
+}
+
+// Run this when the page loads
+window.onload = () => {
+    fetchPublicManga();
+    checkAuth();
+};
         ];
 
         // Reader State
